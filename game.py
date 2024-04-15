@@ -5,89 +5,95 @@ import sys
 pygame.init()
 
 # Set up display
-WINDOW_WIDTH = 600  # Reduced window width
+WINDOW_WIDTH = 600
 WINDOW_HEIGHT = 600
 FPS = 60
 LANE_WIDTH = WINDOW_WIDTH // 4
 NOTE_WIDTH = LANE_WIDTH // 2
 NOTE_HEIGHT = 20
-HIT_AREA_HEIGHT = 80  # Increased hit area height
+HIT_AREA_HEIGHT = 80
+BUTTON_HEIGHT = 30  # Reduced button height
+BUTTON_WIDTH = LANE_WIDTH  # Button width fills the whole lane
 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 clock = pygame.time.Clock()
 
 # Colors
 WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
+GRAY = (128, 128, 128)  # Adjusted gray color
 RED = (255, 0, 0)
-GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
-BUTTON_COLOR = (200, 200, 200)  # Light gray for button boxes
+TRANSPARENT = (0, 0, 0, 0)  # Transparent color
 
 # Game variables
 running = True
+hit_area_highlight = False  # Flag to control hit area highlight
 
 # Define Note class
 class Note:
-    def __init__(self, lane, time):
+    def __init__(self, lane, delay):
         self.lane = lane
-        self.time = time
-        self.y = -((WINDOW_HEIGHT - HIT_AREA_HEIGHT) * time / 3000) - NOTE_HEIGHT  # Start above the screen
-        self.speed = (WINDOW_HEIGHT - HIT_AREA_HEIGHT) / 3000  # Adjust speed so it reaches the hit area in 3 seconds
-        self.color = GREEN  # Green for now
+        self.delay = delay
+        self.speed = (WINDOW_HEIGHT - HIT_AREA_HEIGHT) / 300  # Adjust speed so it reaches the hit area in 3 seconds
+        self.spawn_y = -self.speed * delay
+        self.color = BLUE  # Blue color for notes
         self.hit = False  # Flag to track if note is hit
 
     def move(self):
-        self.y += self.speed
+        self.spawn_y += self.speed
 
     def draw(self):
-        pygame.draw.rect(screen, self.color, (self.lane * LANE_WIDTH + (LANE_WIDTH - NOTE_WIDTH) // 2, self.y, NOTE_WIDTH, NOTE_HEIGHT))
+        pygame.draw.rect(screen, self.color, (self.lane * LANE_WIDTH + (LANE_WIDTH - NOTE_WIDTH) // 2, self.spawn_y, NOTE_WIDTH, NOTE_HEIGHT))
 
 # Predetermined notes
 notes_sequence = [
-    {"lane": 0, "time": 1000},  # Example note at time 1000 ms in lane 0
-    {"lane": 1, "time": 2000},  # Example note at time 2000 ms in lane 1
+    {"lane": 0, "delay": 1000},  # Example note with 1000 ms delay in lane 0
+    {"lane": 1, "delay": 2000},  # Example note with 2000 ms delay in lane 1
     # Add more notes as needed
 ]
 
 # Create Note objects from the notes_sequence
-notes = [Note(note["lane"], note["time"]) for note in notes_sequence]
+notes = [Note(note["lane"], note["delay"]) for note in notes_sequence]
 
 # Text rendering
-font = pygame.font.Font(None, 24)
-score_display_time = 500  # Time in milliseconds to display score feedback
+font = pygame.font.Font(None, 18)  # Adjusted font size
 
 # Function to handle button press
 def handle_button_press(lane):
+    global hit_area_highlight
     for note in notes:
-        if note.lane == lane and abs(note.y - (WINDOW_HEIGHT - HIT_AREA_HEIGHT)) < 10:  # Adjust hit range
+        if note.lane == lane and abs(note.spawn_y - (WINDOW_HEIGHT - HIT_AREA_HEIGHT)) < 10:  # Adjust hit range
             note.hit = True
-            accuracy = abs(note.time - pygame.time.get_ticks())
+            accuracy = abs(note.delay - pygame.time.get_ticks())
             if accuracy <= 50:
-                score_text = font.render("Perfect! 300", True, BLACK)
+                score_text = font.render("Perfect! 300", True, WHITE)
             elif accuracy <= 200:
-                score_text = font.render("Good! 100", True, BLACK)
+                score_text = font.render("Good! 100", True, WHITE)
             else:
-                score_text = font.render("Miss! 0", True, BLACK)
+                score_text = font.render("Miss! 0", True, WHITE)
             screen.blit(score_text, (note.lane * LANE_WIDTH, WINDOW_HEIGHT // 2))
             pygame.display.update()  # Update the display after blitting text
-            pygame.time.delay(score_display_time)  # Delay to display score
+            pygame.time.delay(500)  # Delay to display score
+            # Set flag to highlight hit area
+            hit_area_highlight = True
 
 # Main game loop
 while running:
-    screen.fill(WHITE)
+    screen.fill(WHITE)  # Background color
 
-    # Draw rectangle indicating perfect hit position
-    pygame.draw.rect(screen, BLUE, (0, WINDOW_HEIGHT - HIT_AREA_HEIGHT, WINDOW_WIDTH, HIT_AREA_HEIGHT))
+    # Draw transparent hit area
+    pygame.draw.rect(screen, TRANSPARENT, (0, WINDOW_HEIGHT - HIT_AREA_HEIGHT, WINDOW_WIDTH, HIT_AREA_HEIGHT))
 
     # Draw button labels and colored boxes
     button_labels = ["D", "F", "J", "K"]
     for i, label in enumerate(button_labels):
-        # Draw colored boxes
-        pygame.draw.rect(screen, BUTTON_COLOR, ((2 * i) * (WINDOW_WIDTH // 8), WINDOW_HEIGHT - HIT_AREA_HEIGHT, WINDOW_WIDTH // 4, HIT_AREA_HEIGHT))
         # Draw button labels
-        text = font.render(label, True, BLACK)
-        text_rect = text.get_rect(center=((2 * i + 1) * (WINDOW_WIDTH // 8), WINDOW_HEIGHT - HIT_AREA_HEIGHT // 2))
+        text = font.render(label, True, (0, 0, 0))  # Adjusted to black color
+        text_rect = text.get_rect(center=((i * LANE_WIDTH) + (LANE_WIDTH // 2), WINDOW_HEIGHT - (BUTTON_HEIGHT // 2)))
         screen.blit(text, text_rect)
+
+    # Highlight hit area if a key was pressed
+    if hit_area_highlight:
+        pygame.draw.rect(screen, GRAY, (0, WINDOW_HEIGHT - HIT_AREA_HEIGHT, WINDOW_WIDTH, HIT_AREA_HEIGHT))
 
     # Handle events
     for event in pygame.event.get():
@@ -111,8 +117,11 @@ while running:
         note.draw()
 
         # Check for missed notes
-        if note.y > WINDOW_HEIGHT and not note.hit:
+        if note.spawn_y > WINDOW_HEIGHT and not note.hit:
             note.color = RED  # Change color to indicate a missed note
+
+    # Reset hit area highlight flag
+    hit_area_highlight = False
 
     # Update display
     pygame.display.flip()
