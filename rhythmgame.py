@@ -48,52 +48,68 @@ clock = pygame.time.Clock()
 # List to hold falling notes
 falling_notes = []
 
-# Function to create a new falling note
+# create_note()
+# Function to create a new falling note in a random lane.
+# Parameters: None
+# Returns: None
 def create_note():
-    lane_index = random.randint(0, len(KEY_MAPPING) - 1)
-    x = LANE_X + lane_index * LANE_WIDTH
-    y = 0
+    lane_index = random.randint(0, len(KEY_MAPPING) - 1)  # Randomly select a lane
+    x = LANE_X + lane_index * LANE_WIDTH  # X coordinate based on the lane
+    y = 0  # Start at the top of the screen
     note = {'rect': pygame.Rect(x, y, NOTE_WIDTH, NOTE_HEIGHT), 'color': RED, 'lane': lane_index}
-    falling_notes.append(note)
+    falling_notes.append(note)  # Add the new note to the list
 
-# Function to draw falling notes
+# draw_notes()
+# Function to draw falling notes on the screen
+# Parameters: None
+# Returns: None
 def draw_notes():
     for note in falling_notes:
         pygame.draw.rect(screen, note['color'], note['rect'])
 
-# Function to move falling notes
+# move_notes()
+# Function to move falling notes downwards
+# Parameters: None
+# Returns: None
 def move_notes():
     for note in falling_notes:
-        note['rect'].move_ip(0, NOTE_SPEED)
+        note['rect'].move_ip(0, NOTE_SPEED)  # Move note down by NOTE_SPEED
 
-# Function to detect key presses
+# check_key_press()
+# Function to detect key presses and handles game logic related to key events.
+# Parameters: None
+# Returns: None
 def check_key_press():
     for event in pygame.event.get():
-        if event.type == pygame.QUIT:
+        if event.type == pygame.QUIT:  # If the user closes the window
             pygame.quit()
             sys.exit()
         elif event.type == pygame.KEYDOWN:
-            if event.unicode in KEY_MAPPING:
+            if event.unicode in KEY_MAPPING:  # Check if the pressed key is mapped
                 key_index = KEY_MAPPING[event.unicode]
                 for note in falling_notes:
                     if note['lane'] == key_index and is_hit(note['rect'], hit_areas[key_index]):
                         note['color'] = WHITE  # Change color when hit
                         # Additional actions when a note is hit can be added here
-            # Create a new note in the selected lane when a specific key is pressed
-            elif event.key == pygame.K_SPACE:  # Change this key as desired
+            elif event.key == pygame.K_SPACE:  # Specific key press to create a new note
                 selected_lane = random.randint(0, len(KEY_MAPPING) - 1)
                 x = LANE_X + selected_lane * LANE_WIDTH
                 y = 0
                 note = {'rect': pygame.Rect(x, y, NOTE_WIDTH, NOTE_HEIGHT), 'color': RED, 'lane': selected_lane}
-                falling_notes.append(note)
+                falling_notes.append(note)  # Add the new note to the list
 
-# Function to check if a note is hit
+# is_hit()
+# Function to check if a note is hit (if a note rectangle overlaps with a hit area rectangle)
+# Parameters:
+# - note_rect: The rectangle of the falling note.
+# - hit_rect: The rectangle of the hit area.
+# Returns: True if the note is hit, False otherwise.
 def is_hit(note_rect, hit_rect):
-    return note_rect.colliderect(hit_rect)
+    return note_rect.colliderect(hit_rect)  # Check for collision
 
 # Main game loop
 while True:
-    screen.fill(BLACK)
+    screen.fill(BLACK)  # Clear screen with black
 
     # Draw lines to represent the playing area
     pygame.draw.line(screen, WHITE, (GAME_AREA_X - 1, GAME_AREA_Y), (GAME_AREA_X - 1, GAME_AREA_Y + GAME_AREA_HEIGHT), 2)
@@ -106,7 +122,7 @@ while True:
         hit_y = GAME_AREA_Y + GAME_AREA_HEIGHT - HIT_AREA_HEIGHT
         hit_area = pygame.Rect(hit_x, hit_y, NOTE_WIDTH, HIT_AREA_HEIGHT)
         hit_areas.append(hit_area)
-        pygame.draw.rect(screen, WHITE, hit_area, 1)  # Hollow rectangle
+        pygame.draw.rect(screen, WHITE, hit_area, 1)  # Draw a hollow rectangle
 
     # Create new falling notes with a delay
     if random.randint(0, 100) < 3:  # Adjust this probability to control note frequency
@@ -123,4 +139,4 @@ while True:
     pygame.display.flip()
 
     # Cap the frame rate
-    clock.tick(30)
+    clock.tick(30)  # Limit frame rate to 30 FPS
